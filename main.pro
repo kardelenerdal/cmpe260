@@ -84,10 +84,19 @@ find_mutual_activities(Name1, Name2, MutualActivities) :-
 	find_mutuals(Activities1, Activities2, MutualActivities).
 
 find_mutuals([], _, []).
-find_mutuals(List1, List2, Intersection) :-
+find_mutuals([Head1|Tail1], List2, Intersection) :- 
+	member(Head1, List2),
+	find_mutuals(Tail1, List2, Intersection2),
+	append([Head1], Intersection2, Intersection).
+
+find_mutuals([Head1|Tail1], List2, Intersection) :- 
+	not(member(Head1, List2)),
+	find_mutuals(Tail1, List2, Intersection).
 	
 
 % 3.6 find_possible_targets(Name, Distances, TargetList) 10 points
+
+
 
 % 3.7 find_weighted_targets(Name, Distances, TargetList) 15 points
 
