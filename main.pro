@@ -78,6 +78,14 @@ remove_duplicates([Head|Tail], [Head|NewTail]) :-
 	
 
 % 3.5 find_mutual_activities(Name1, Name2, MutualActivities) 5 points
+find_mutual_activities(Name1, Name2, MutualActivities) :-
+	likes(Name1, Activities1, _),
+	likes(Name2, Activities2, _),
+	find_mutuals(Activities1, Activities2, MutualActivities).
+
+find_mutuals([], _, []).
+find_mutuals(List1, List2, Intersection) :-
+	
 
 % 3.6 find_possible_targets(Name, Distances, TargetList) 10 points
 
