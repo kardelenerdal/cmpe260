@@ -1,3 +1,4 @@
+:- encoding(utf8).
 % include the knowledge base
 :- ['load.pro'].
 
@@ -18,8 +19,6 @@ calculate_distance([H1|T1], [H2|T2], Distance) :-
 	calculate_distance([H1], [H2], HeadDistance),
 	Distance is HeadDistance + TailDistance.
 
-
-
 % 3.2 weighted_glanian_distance(Name1, Name2, Distance) 10 points
 weighted_glanian_distance(Name1, Name2, Distance) :-
 	expects(Name1, _, Expected_list),
@@ -28,7 +27,8 @@ weighted_glanian_distance(Name1, Name2, Distance) :-
 	calculate_weighted_distance(Expected_list, Features, WeightList, DistanceSquared),
 	Distance is sqrt(DistanceSquared).
 
-calculate_weighted_distance([-1], _, [-1], Distance) :- Distance is 0.
+calculate_weighted_distance([-1], _, [-1], Distance) :- 
+	Distance is 0.
 
 calculate_weighted_distance([H1], [H2], [H3], Distance) :-
 	Distance is (H1-H2)*(H1-H2)*H3.
@@ -39,17 +39,43 @@ calculate_weighted_distance([H1|T1], [H2|T2], [H3|T3], Distance) :-
 	Distance is HeadDistance + TailDistance.
 
 % 3.3 find_possible_cities(Name, CityList) 5 points
-%find_possible_cities(Name, CityList) :- 
+find_possible_cities(Name, CityList) :- 
+	find_liked_cities(Name, LikedCities), 
+	find_current_city(Name, CurrentCity), 
+	append([CurrentCity], LikedCities, CityList).
 
-find_liked_cities(Name, CityList) :- findall(X,likes(Name, _, X), CityList).
+find_liked_cities(Name, CityList) :- 
+	findall(X, likes(Name, _, X), [CityList]).
 
-find_current_city(Name, City) :- all_cities(CityList), member(City, CityList), is_living(Name, City).
+find_current_city(Name, City) :- 
+	all_cities(CityList), 
+	member(City, CityList), 
+	is_living(Name, City).
 
-is_living(Name, City) :- city(City, HabitantList, _), member(Name, HabitantList). 
+is_living(Name, City) :- 
+	city(City, HabitantList, _), 
+	member(Name, HabitantList). 
 
-all_cities(CityList) :- findall(X, city(X, _, _), CityList).
+all_cities(CityList) :- 
+	findall(X, city(X, _, _), CityList).
 
 % 3.4 merge_possible_cities(Name1, Name2, MergedCities) 5 points
+merge_possible_cities(Name1, Name2, MergedCities) :- 
+	find_possible_cities(Name1, CityList1), 
+	find_possible_cities(Name2, CityList2), 
+	append(CityList1, CityList2, MergedCitiesDuplicates), 
+	remove_duplicates(MergedCitiesDuplicates, MergedCities).
+
+remove_duplicates([], []).
+
+remove_duplicates([Head|Tail], NewTail) :- 
+	member(Head, Tail), 
+	remove_duplicates(Tail, NewTail).
+
+remove_duplicates([Head|Tail], [Head|NewTail]) :- 
+	not(member(Head, Tail)), 
+	remove_duplicates(Tail, NewTail).
+	
 
 % 3.5 find_mutual_activities(Name1, Name2, MutualActivities) 5 points
 
