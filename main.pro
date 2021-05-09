@@ -95,7 +95,19 @@ find_mutuals([Head1|Tail1], List2, Intersection) :-
 	
 
 % 3.6 find_possible_targets(Name, Distances, TargetList) 10 points
+find_possible_targets(Name, Distances, TargetList) :- 
+	findall(TargetName, (glanian(TargetName, Gender, _), expects(Name, ExpectedGenderList, _), member(Gender, ExpectedGenderList)), TargetListUnsorted),
+	find_possible_distances(Name, TargetListUnsorted, DistancesAndHeads),
+	keysort(DistancesAndHeads, DistancesAndHeadsSorted),
+	findall(X, member(X-_,DistancesAndHeadsSorted), Distances),
+	findall(Y, member(_-Y,DistancesAndHeadsSorted), TargetList).
 
+find_possible_distances(Name, [Head|Tail], Distances) :-
+	glanian_distance(Name, Head, Distance),
+	find_possible_distances(Name, Tail, TailDistance),
+	append([Distance-Head], TailDistance, Distances).
+
+find_possible_distances(_, [], []).
 
 
 % 3.7 find_weighted_targets(Name, Distances, TargetList) 15 points
