@@ -111,6 +111,20 @@ find_possible_distances(_, [], []).
 
 
 % 3.7 find_weighted_targets(Name, Distances, TargetList) 15 points
+find_weighted_targets(Name, Distances, TargetList) :- 
+	findall(TargetName, (glanian(TargetName, Gender, _), expects(Name, ExpectedGenderList, _), member(Gender, ExpectedGenderList)), TargetListUnsorted),
+	find_possible_weighted_distances(Name, TargetListUnsorted, DistancesAndHeads),
+	keysort(DistancesAndHeads, DistancesAndHeadsSorted),
+	findall(X, member(X-_,DistancesAndHeadsSorted), Distances),
+	findall(Y, member(_-Y,DistancesAndHeadsSorted), TargetList).
+
+find_possible_weighted_distances(Name, [Head|Tail], Distances) :-
+	weighted_glanian_distance(Name, Head, Distance),
+	find_possible_weighted_distances(Name, Tail, TailDistance),
+	append([Distance-Head], TailDistance, Distances).
+
+find_possible_weighted_distances(_, [], []).
+
 
 % 3.8 find_my_best_target(Name, Distances, Activities, Cities, Targets) 20 points
 
