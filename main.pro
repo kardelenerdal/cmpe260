@@ -127,5 +127,74 @@ find_possible_weighted_distances(_, [], []).
 
 
 % 3.8 find_my_best_target(Name, Distances, Activities, Cities, Targets) 20 points
+% activityye göre sıralamak için city-target, activity-city-target
+find_my_best_target(Name, Distances, Activities, Cities, Targets) :-
+	find_targets(Name, Targets),
+	find_cities(Name, Targets, Cities),
+	find_activities(Name, Targets, Cities, Activities),
+	find_distances(Name, Targets, Distances).
+
+find_activities(Name, TargetList, CityList, ActivityList) :- 
+	dislikes(Name, DislikedActivities, _, _),
+	find_activities_in_cities(CityList, ActivityList2),
+	findall(ActivityName, (member(ActivityName, ActivityList2), not(member(ActivityName, DislikedActivities))), ActivityList).
+
+find_activities_in_cities([CityHead|CityTail], ActivityList) :-
+	find_activities_in_cities(CityTail, ActivityTail),
+	city(CityHead, _, ActivityHead),
+	append(ActivityHead, ActivityTail, ActivityList2),
+	remove_duplicates(ActivityList2, ActivityList).
+
+find_activities_in_cities([], []).
+
+find_cities(Name, [TargetHead|TargetTail], CityList) :-
+	find_possible_cities(Name, CityList1),
+	dislikes(Name, _, DislikedCities, _),
+	activity_cities(Name, CityList3),
+	findall(CityName, (city(CityName, _, _), (member(CityName, CityList1);member(CityName, CityList3)), not(member(CityName, DislikedCities)), merge_possible_cities(Name, TargetHead, CityList2), member(CityName, CityList2)), CityListHead),
+	find_cities(Name, TargetTail, CityListTail),
+	append(CityListHead, CityListTail, CityList).
+
+find_cities(_, [], []).
+
+activity_cities(Name, CityList) :-
+	likes(Name, LikedActivities, _),
+	findall(CityName, (city(CityName, _ , Activities), count_intersection(LikedActivities, Activities, Count), Count>0), CityList).
+
+find_targets(Name, TargetList) :-
+	findall(TargetName, (glanian(TargetName, Gender, _), expects(Name, ExpectedGenderList, _), member(Gender, ExpectedGenderList), not(find_old_relation(Name, TargetName)), in_tolerance_limits(Name, TargetName), activity_match(Name, TargetName, Conflict), Conflict < 3), TargetList2), 
+	remove_duplicates(TargetList2, TargetList).
+
+activity_match(Name, TargetName, Conflict) :-
+	dislikes(Name, DislikedActivities, _, _),
+	likes(TargetName, LikedActivities, _),
+	count_intersection(DislikedActivities, LikedActivities, Conflict).
+
+count_intersection([Head1|Tail1], List2, Count) :-
+	member(Head1, List2), count_intersection(Tail1, List2, Count2), Count is 1+Count2.
+
+count_intersection([Head1|Tail1], List2, Count) :-
+	not(member(Head1, List2)), count_intersection(Tail1, List2, Count).
+
+count_intersection([], _, 0).
+count_intersection(_, [], 0).	
+
+find_old_relation(Name, TargetName) :-
+	old_relation([Name, TargetName]); old_relation([TargetName, Name]).
+
+in_tolerance_limits(Name, TargetName) :-
+	glanian(TargetName, _, FeaturesList),
+	dislikes(Name, _, _, Limits),
+	check_tolerance_limits(FeaturesList, Limits).
+
+check_tolerance_limits([FeaturesHead|FeaturesTail], [LimitsHead|LimitsTail]) :-
+	(is_empty(LimitsHead) ; (getMinMaxLimits(LimitsHead, MinLimit, [MaxLimit]), FeaturesHead >= MinLimit, FeaturesHead =< MaxLimit)),
+	check_tolerance_limits(FeaturesTail, LimitsTail).
+
+check_tolerance_limits([], []).
+
+getMinMaxLimits([MinLimit|MaxLimit], MinLimit, MaxLimit).
+
+is_empty(List):- not(member(_,List)).
 
 % 3.9 find_my_best_match(Name, Distances, Activities, Cities, Targets) 25 points
