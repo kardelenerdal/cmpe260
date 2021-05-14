@@ -42,7 +42,8 @@ calculate_weighted_distance([H1|T1], [H2|T2], [H3|T3], Distance) :-
 find_possible_cities(Name, CityList) :- 
 	find_liked_cities(Name, LikedCities), 
 	find_current_city(Name, CurrentCity), 
-	append([CurrentCity], LikedCities, CityList).
+	append([CurrentCity], LikedCities, CityList2),
+	remove_duplicates(CityList2, CityList).
 
 find_liked_cities(Name, CityList) :- 
 	findall(X, likes(Name, _, X), [CityList]).
@@ -125,37 +126,65 @@ find_possible_weighted_distances(Name, [Head|Tail], Distances) :-
 
 find_possible_weighted_distances(_, [], []).
 
-
 % 3.8 find_my_best_target(Name, Distances, Activities, Cities, Targets) 20 points
-% activityye göre sıralamak için city-target, activity-city-target
 find_my_best_target(Name, Distances, Activities, Cities, Targets) :-
-	find_targets(Name, Targets),
-	find_cities(Name, Targets, Cities),
-	find_activities(Name, Targets, Cities, Activities),
-	find_distances(Name, Targets, Distances).
+	find_targets(Name, TargetList),
+	find_cities(Name, TargetList, CityList, TargetListDuplicated),
+	find_activities(Name, CityList, TargetListDuplicated, Activities, Targets, Cities),
+	find_distances(Name, Targets, Distances),
+	print(Activities),
+	print(Cities),
+	print(Targets),
+	print(Distances).
 
-find_activities(Name, TargetList, CityList, ActivityList) :- 
+find_distances(Name, [Head|Tail], Distances) :-
+	glanian_distance(Name, Head, Distance),
+	find_distances(Name, Tail, TailDistance),
+	append([Distance], TailDistance, Distances).
+
+find_distances(_, [], []).	
+
+find_activities(_, [], [], [], [], []).	
+
+find_activities(Name, [CityHead|CityTail], [TargetHead|TargetTail], ActivityList, TargetList, CityList) :- 
+	find_activities(Name, CityTail, TargetTail, Activity2, Target2, City2),
+	find_activities_in_city(Name, CityHead, ActivityHead),
+	length(ActivityHead, Times),
+	write_x_times(CityHead, Times, CityListHead),
+	write_x_times(TargetHead, Times, TargetListHead),
+	append(TargetListHead, Target2, TargetList),
+	append(CityListHead, City2, CityList),
+	append(ActivityHead, Activity2, ActivityList).
+
+decr(X,NX) :-
+    NX is X-1.
+
+write_x_times(Name, Times, List) :- 
+	Times =\= 0,
+	decr(Times, NewTimes),
+	write_x_times(Name, NewTimes, List2),
+	append([Name], List2, List).
+
+write_x_times(_, 0, []).	
+
+find_activities_in_city(Name, CityName, ActivityList) :- 
 	dislikes(Name, DislikedActivities, _, _),
-	find_activities_in_cities(CityList, ActivityList2),
-	findall(ActivityName, (member(ActivityName, ActivityList2), not(member(ActivityName, DislikedActivities))), ActivityList).
+	city(CityName, _, ActivityHead2),
+	findall(ActivityName, (member(ActivityName, ActivityHead2), not(member(ActivityName, DislikedActivities))), ActivityList).
 
-find_activities_in_cities([CityHead|CityTail], ActivityList) :-
-	find_activities_in_cities(CityTail, ActivityTail),
-	city(CityHead, _, ActivityHead),
-	append(ActivityHead, ActivityTail, ActivityList2),
-	remove_duplicates(ActivityList2, ActivityList).
-
-find_activities_in_cities([], []).
-
-find_cities(Name, [TargetHead|TargetTail], CityList) :-
+find_cities(Name, [TargetHead|TargetTail], CityList, TargetsDuplicated) :-
 	find_possible_cities(Name, CityList1),
 	dislikes(Name, _, DislikedCities, _),
 	activity_cities(Name, CityList3),
-	findall(CityName, (city(CityName, _, _), (member(CityName, CityList1);member(CityName, CityList3)), not(member(CityName, DislikedCities)), merge_possible_cities(Name, TargetHead, CityList2), member(CityName, CityList2)), CityListHead),
-	find_cities(Name, TargetTail, CityListTail),
+	findall(CityName, (city(CityName, _, _), (member(CityName, CityList1);member(CityName, CityList3)), not(member(CityName, DislikedCities)), merge_possible_cities(Name, TargetHead, CityList2), member(CityName, CityList2)), CityListHead2),
+	remove_duplicates(CityListHead2, CityListHead),
+	length(CityListHead, Times),
+	write_x_times(TargetHead, Times, TargetsDuplicatedHead),
+	find_cities(Name, TargetTail, CityListTail, TargetsDuplicatedTail),
+	append(TargetsDuplicatedHead, TargetsDuplicatedTail, TargetsDuplicated),
 	append(CityListHead, CityListTail, CityList).
 
-find_cities(_, [], []).
+find_cities(_, [], [], []).
 
 activity_cities(Name, CityList) :-
 	likes(Name, LikedActivities, _),
