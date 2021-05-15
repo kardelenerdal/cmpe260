@@ -136,7 +136,7 @@ find_my_best_target(Name, Distances, Activities, Cities, Targets) :-
 	print(Activities),
 	print(Cities),
 	print(Targets),
-	print(Distances).
+	print(Distances), !.
 
 find_distances(Name, [Head|Tail], Distances) :-
 	weighted_glanian_distance(Name, Head, Distance),
