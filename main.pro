@@ -229,16 +229,36 @@ getMinMaxLimits([MinLimit|MaxLimit], MinLimit, MaxLimit).
 is_empty(List):- not(member(_,List)).
 
 % 3.9 find_my_best_match(Name, Distances, Activities, Cities, Targets) 25 points
+% distance - [target-city-activity] tut ve sırala öyle koy :(
 find_my_best_match(Name, Distances, Activities, Cities, Targets) :-
 	find_weighted_targets(Name, _, PossibleTargetList),
 	find_matches(Name, PossibleTargetList, TargetList),
 	find_cities_matches(Name, TargetList, CityList, TargetListDuplicated),
-	find_activities_matches(Name, CityList, TargetListDuplicated, Activities, Targets, Cities),
-	find_distances_matches(Name, Targets, Distances),
+	find_activities_matches(Name, CityList, TargetListDuplicated, Activities2, Targets2, Cities2),
+	find_distances_matches(Name, Targets2, Distances2),
+	mycombine(Distances2, Targets2, Cities2, Activities2, AllListsUnsorted),
+	keysort(AllListsUnsorted, AllLists),
+	mydivide(AllLists, Targets, Distances, Activities, Cities),
 	print(Activities),
 	print(Cities),
 	print(Targets),
 	print(Distances).
+
+mycombine([],[],[],[],[]).
+
+mycombine([Dh|Dt], [Th|Tt], [Ch|Ct], [Ah|At], AllLists) :-
+	mycombine(Dt, Tt, Ct, At, AllListsTail),
+	append([Dh-[Th, Ch, Ah]], AllListsTail, AllLists).
+
+mydivide([], [], [], [], []).
+
+mydivide([Distance-[Target, City, Activity]|At], Targets, Distances, Activities, Cities) :-
+	mydivide(At, TargetsTail, DistancesTail, ActivitiesTail, CitiesTail),
+	append([Target], TargetsTail, Targets),
+	append([City], CitiesTail, Cities),
+	append([Activity], ActivitiesTail, Activities),
+	append([Distance], DistancesTail, Distances).
+
 
 find_matches(Name, PossibleTargetList, TargetList) :-
 	glanian(Name, MyGender, _),
