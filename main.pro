@@ -128,7 +128,8 @@ find_possible_weighted_distances(_, [], []).
 
 % 3.8 find_my_best_target(Name, Distances, Activities, Cities, Targets) 20 points
 find_my_best_target(Name, Distances, Activities, Cities, Targets) :-
-	find_targets(Name, TargetList),
+	find_weighted_targets(Name, _, PossibleTargetList),
+	find_targets(Name, PossibleTargetList, TargetList),
 	find_cities(Name, TargetList, CityList, TargetListDuplicated),
 	find_activities(Name, CityList, TargetListDuplicated, Activities, Targets, Cities),
 	find_distances(Name, Targets, Distances),
@@ -138,7 +139,7 @@ find_my_best_target(Name, Distances, Activities, Cities, Targets) :-
 	print(Distances).
 
 find_distances(Name, [Head|Tail], Distances) :-
-	glanian_distance(Name, Head, Distance),
+	weighted_glanian_distance(Name, Head, Distance),
 	find_distances(Name, Tail, TailDistance),
 	append([Distance], TailDistance, Distances).
 
@@ -170,7 +171,8 @@ write_x_times(_, 0, []).
 find_activities_in_city(Name, CityName, ActivityList) :- 
 	dislikes(Name, DislikedActivities, _, _),
 	city(CityName, _, ActivityHead2),
-	findall(ActivityName, (member(ActivityName, ActivityHead2), not(member(ActivityName, DislikedActivities))), ActivityList).
+	findall(ActivityName, (member(ActivityName, ActivityHead2), not(member(ActivityName, DislikedActivities))), ActivityList2),
+	remove_duplicates(ActivityList2, ActivityList).
 
 find_cities(Name, [TargetHead|TargetTail], CityList, TargetsDuplicated) :-
 	find_possible_cities(Name, CityList1),
@@ -190,8 +192,8 @@ activity_cities(Name, CityList) :-
 	likes(Name, LikedActivities, _),
 	findall(CityName, (city(CityName, _ , Activities), count_intersection(LikedActivities, Activities, Count), Count>0), CityList).
 
-find_targets(Name, TargetList) :-
-	findall(TargetName, (glanian(TargetName, Gender, _), expects(Name, ExpectedGenderList, _), member(Gender, ExpectedGenderList), not(find_old_relation(Name, TargetName)), in_tolerance_limits(Name, TargetName), activity_match(Name, TargetName, Conflict), Conflict < 3), TargetList2), 
+find_targets(Name, PossibleTargetList, TargetList) :-
+	findall(TargetName, (member(TargetName, PossibleTargetList), glanian(TargetName, Gender, _), expects(Name, ExpectedGenderList, _), member(Gender, ExpectedGenderList), not(find_old_relation(Name, TargetName)), in_tolerance_limits(Name, TargetName), activity_match(Name, TargetName, Conflict), Conflict < 3), TargetList2), 
 	remove_duplicates(TargetList2, TargetList).
 
 activity_match(Name, TargetName, Conflict) :-
@@ -227,3 +229,65 @@ getMinMaxLimits([MinLimit|MaxLimit], MinLimit, MaxLimit).
 is_empty(List):- not(member(_,List)).
 
 % 3.9 find_my_best_match(Name, Distances, Activities, Cities, Targets) 25 points
+find_my_best_match(Name, Distances, Activities, Cities, Targets) :-
+	find_weighted_targets(Name, _, PossibleTargetList),
+	find_matches(Name, PossibleTargetList, TargetList),
+	find_cities_matches(Name, TargetList, CityList, TargetListDuplicated),
+	find_activities_matches(Name, CityList, TargetListDuplicated, Activities, Targets, Cities),
+	find_distances_matches(Name, Targets, Distances),
+	print(Activities),
+	print(Cities),
+	print(Targets),
+	print(Distances).
+
+find_matches(Name, PossibleTargetList, TargetList) :-
+	glanian(Name, MyGender, _),
+	expects(Name, ExpectedGenderList, _),
+	findall(TargetName, (member(TargetName, PossibleTargetList), glanian(TargetName, Gender, _), member(Gender, ExpectedGenderList), expects(TargetName, ExpextedGenderList2, _), member(MyGender, ExpextedGenderList2), not(find_old_relation(Name, TargetName)), in_tolerance_limits(Name, TargetName), in_tolerance_limits(TargetName, Name), activity_match(TargetName, Name, Conflict2), Conflict2 < 3, activity_match(Name, TargetName, Conflict), Conflict < 3), TargetList2), 
+	remove_duplicates(TargetList2, TargetList).
+
+find_cities_matches(Name, [TargetHead|TargetTail], CityList, TargetsDuplicated) :-
+	find_possible_cities(Name, CityList1),
+	find_possible_cities(TargetHead, CityList1t),
+	dislikes(Name, _, DislikedCities, _),
+	dislikes(TargetHead, _, DislikedCitiest, _),
+	activity_cities(Name, CityList3),
+	activity_cities(TargetHead, CityList3t),
+	merge_possible_cities(Name, TargetHead, CityList2),
+	findall(CityName, (city(CityName, _, _), (member(CityName, CityList1);member(CityName, CityList3)), (member(CityName, CityList1t);member(CityName, CityList3t)), not(member(CityName, DislikedCities)), not(member(CityName, DislikedCitiest)), member(CityName, CityList2)), CityListHead2),
+	remove_duplicates(CityListHead2, CityListHead),
+	length(CityListHead, Times),
+	write_x_times(TargetHead, Times, TargetsDuplicatedHead),
+	find_cities_matches(Name, TargetTail, CityListTail, TargetsDuplicatedTail),
+	append(TargetsDuplicatedHead, TargetsDuplicatedTail, TargetsDuplicated),
+	append(CityListHead, CityListTail, CityList).
+
+find_cities_matches(_, [], [], []).	
+
+find_activities_matches(_, [], [], [], [], []).	
+
+find_activities_matches(Name, [CityHead|CityTail], [TargetHead|TargetTail], ActivityList, TargetList, CityList) :- 
+	find_activities_matches(Name, CityTail, TargetTail, Activity2, Target2, City2),
+	find_activities_in_city_matches(Name, TargetHead, CityHead, ActivityHead),
+	length(ActivityHead, Times),
+	write_x_times(CityHead, Times, CityListHead),
+	write_x_times(TargetHead, Times, TargetListHead),
+	append(TargetListHead, Target2, TargetList),
+	append(CityListHead, City2, CityList),
+	append(ActivityHead, Activity2, ActivityList).
+
+find_activities_in_city_matches(Name, Name2, CityName, ActivityList) :- 
+	dislikes(Name, DislikedActivities, _, _),
+	dislikes(Name2, DislikedActivities2, _, _),
+	city(CityName, _, ActivityHead2),
+	findall(ActivityName, (member(ActivityName, ActivityHead2), not(member(ActivityName, DislikedActivities)), not(member(ActivityName, DislikedActivities2))), ActivityList2),
+	remove_duplicates(ActivityList2, ActivityList).	
+
+find_distances_matches(Name, [Head|Tail], Distances) :-
+	weighted_glanian_distance(Name, Head, Distance1),
+	weighted_glanian_distance(Head, Name, Distance2),
+	find_distances_matches(Name, Tail, TailDistance),
+	Distance is (Distance1 + Distance2)/2,
+	append([Distance], TailDistance, Distances).
+
+find_distances_matches(_, [], []).		
