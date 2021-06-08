@@ -105,4 +105,12 @@
 (gradient-descent '(x y) '(10 20) '(x) 0.1 '(mse x y))
 
 ;5.6
-(define (optimize names values vars lr k expr) () )
+(define (optimize names values vars lr k expr) (if (= k 1)
+                                                   (gradient-descent names values vars lr expr)
+                                                   (gradient-descent names (optimize names values vars lr (- k 1) expr) vars lr expr) ) )
+
+(optimize '(x y) '(10 20) '(x) 0.1 100 '(+ x y))
+(optimize '(x y) '(10 20) '(x y) 1 5 '(+ x y))
+(optimize '(x y) '(10 20) '(x) 0.01 1000 '(mse x y))
+(optimize '(x y w1 w2 b) '(1 20 0.1 0.3 5) '(x) 0.001 1000 '(mse (+ (* x x w1) (* x w2) b) y))
+
